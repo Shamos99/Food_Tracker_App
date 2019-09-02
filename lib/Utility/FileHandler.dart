@@ -6,6 +6,9 @@ import 'dart:async';
 class FileHandler {
   String _filename;
 
+  set filename(String value) {
+    _filename = value;
+  }
 
   FileHandler(this._filename);
 

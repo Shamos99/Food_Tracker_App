@@ -15,18 +15,44 @@ class Options {
 }
 
 class Constants {
+  //file/storage handling
+  static const String meals_json = "test.txt";
+  static const String ingredients_json = "test.txt";
+  static const String calorie_goal_key = "calories";
+
+  //string constants
   static const String appTitle = "EZ Calories";
   static const String delete = "Delete?";
   static const String yes = "Yes";
   static const String no = "No";
-  static const String json_file = "test.txt";
-  static const String calorie_goal_key = "calories";
   static const String calorie_goal_promopt = "Enter your calorie goal";
   static const String cancel = "Cancel";
   static const String okay = "Okay";
   static const String type = "Type...";
   static const int defaultCalorieGoal = 2000;
-  static const String ingredientPage = "Ingredient Library";
+  static const String ingredientPageTitle = "Ingredient Library";
+  static const String add_ingredient = "Add Ingerdient";
+  static const String per_100_gm_or_ml = "per 100gm or 100ml";
+  static const String emptyError = "Enter something maybe???";
+  static const String number_error_prompt = "idiot baka...";
+  static const String ingredientName = "Ingredient Name";
+  static const String calories = "Calories";
+  static const String protein = "Protein";
+  static const String carbs = "Carbs";
+  static const String fats = "Fats";
+  static const String noIngredients = "No ingredients yet to show :(";
+  static const String protein_cals_explanation =
+      "Protein and Calories are Mandatory";
+  static const String total_cals_not_adding =
+      "All macros do not add up to the given calories...dumbass";
+  static const String cals_prompt_not_all_macros =
+      "The given macros should be less than the fucking calories dumbfuck";
+
+  //integers for calorie logic
+  static const int protein_cals_per_gram = 4;
+  static const int carbs_cals_per_gram = 4;
+  static const int fats_cals_per_gram = 9;
+  static const int snackbar_duration = 2;
 }
 
 //Custom Widgets

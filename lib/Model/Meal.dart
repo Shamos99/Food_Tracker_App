@@ -1,32 +1,49 @@
 import 'package:json_annotation/json_annotation.dart';
-
-import 'IngredientAmount.dart';
+import 'Ingredient.dart';
 
 part 'Meal.g.dart';
 
 @JsonSerializable()
 class Meal {
-
-  List<IngredientAmount> _ingredients;
+  List<String> _ingredients;
   String _name;
+  int _cals;
+  int _protein;
 
-
-  Meal(String name, List<IngredientAmount> ingredientList){
+  Meal(String name, List<String> ingredientList, int cals, int protein) {
     this._name = name;
     this._ingredients = ingredientList;
+    this._cals = cals;
+    this._protein = protein;
   }
 
-  void addIngredient(IngredientAmount ingredient){
-    _ingredients.add(ingredient);
+  void addIngredient(Ingredient ingredient) {
+    if (_ingredients.contains(ingredient.name)) {
+      throw Error();
+    }
+    _ingredients.add(ingredient.name);
+    _cals += ingredient.calories;
+    _protein += ingredient.protein;
+  }
 
+  void deleteIngredient(Ingredient ingredient) {
+    if (_ingredients.contains(ingredient.name)) {
+      throw Error();
+    }
+    _ingredients.remove(ingredient);
+    _cals -= ingredient.calories;
+    _protein -= ingredient.protein;
   }
 
   String get name => this._name;
 
-  List<IngredientAmount> get ingredientList => this._ingredients;
+  List<String> get ingredientList => this._ingredients;
+
+  int get protein => _protein;
+
+  int get cals => _cals;
 
   factory Meal.fromJson(Map<String, dynamic> json) => _$MealFromJson(json);
 
   Map<String, dynamic> toJson() => _$MealToJson(this);
-
 }

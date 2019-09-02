@@ -4,7 +4,7 @@ import 'custom.dart';
 
 class Page_2 extends StatefulWidget {
 
-  var filehandler = new FileHandler(Constants.json_file);
+  var filehandler = new FileHandler(Constants.ingredients_json);
 
   @override
   State<StatefulWidget> createState() {

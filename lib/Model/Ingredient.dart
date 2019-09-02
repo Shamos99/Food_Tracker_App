@@ -4,42 +4,37 @@ part 'Ingredient.g.dart';
 
 @JsonSerializable()
 class Ingredient {
-
   String _name;
 
-  double _calories;
-  double _servingSize;
+  int _calories;
+  int _protein;
+  int _carbs;
+  int _fats;
 
-  double _protein;
-  double _carbs;
-  double _fats;
+  int _servingSize = 100;
 
-  Ingredient(String name, double calories, double servingSize, double protein, double carbs, double fats){
+  Ingredient(String name, int calories, int protein, int carbs, int fats) {
     this._name = name;
     this._calories = calories;
-    this._servingSize = servingSize;
     this._protein = protein;
     this._carbs = carbs;
     this._fats = fats;
-
   }
 
-
-  factory Ingredient.fromJson(Map<String, dynamic> json) => _$IngredientFromJson(json);
+  factory Ingredient.fromJson(Map<String, dynamic> json) =>
+      _$IngredientFromJson(json);
 
   Map<String, dynamic> toJson() => _$IngredientToJson(this);
 
-  double get protein => _protein;
+  int get protein => _protein;
 
-  double get servingSize => _servingSize;
+  int get calories => _calories;
 
-  double get calories => _calories;
+  int get fats => _fats;
 
-  double get fats => _fats;
-
-  double get carbs => _carbs;
+  int get carbs => _carbs;
 
   String get name => _name;
 
-
+  int get servingSize => _servingSize;
 }

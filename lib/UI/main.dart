@@ -8,7 +8,7 @@ import 'package:food_tracker/Utility/FileHandler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'custom.dart';
 import 'page_2.dart';
-import 'page_3.dart';
+import 'ingredient_main.dart';
 
 void main() => runApp(MyApp());
 
@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
 }
 
 class _MainPage extends StatefulWidget {
-  var fileHandler = FileHandler(Constants.json_file);
+  //var fileHandler = FileHandler(Constants.json_file);
 
   @override
   State<StatefulWidget> createState() {
@@ -72,8 +72,8 @@ class _MainPageState extends State<_MainPage> {
           onSelected: _choice,
         )
       ]),
-      body: ListView(
-        children: <Widget>[_buildPage()],
+      body: SingleChildScrollView(
+        child: _buildPage(),
         padding: EdgeInsets.all(10.0),
       ),
     );
@@ -133,7 +133,7 @@ class _MainPageState extends State<_MainPage> {
         children: <Widget>[
           new Text("Todays Meals", textScaleFactor: 1.5),
           new RaisedButton(
-            onPressed: () {},
+            onPressed: () {}, //TODO: ADD MEALS
             child: new Icon(Icons.add),
           )
         ],
@@ -163,6 +163,7 @@ class _MainPageState extends State<_MainPage> {
         ]);
   }
 
+  //TODO MAKE THIS ITS OWN PAGE
   void _showMaterialDialog() {
     showDialog(
         context: context,
@@ -200,8 +201,8 @@ class _MainPageState extends State<_MainPage> {
       Navigator.push(
           context, new MaterialPageRoute(builder: (context) => new Page_2()));
     } else if (choice == Options.ingredientlib) {
-      Navigator.push(
-          context, new MaterialPageRoute(builder: (context) => new Page_3()));
+      Navigator.push(context,
+          new MaterialPageRoute(builder: (context) => new IngredientMain()));
     } else if (choice == Options.refresh) {
     } else if (choice == Options.calorieGoal) {
       _showMaterialDialog();
