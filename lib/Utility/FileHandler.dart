@@ -15,7 +15,6 @@ class FileHandler {
   Future<bool> writeData(String Data) async {
     try {
       File file = await _localFile();
-      print(file.path);
       file.writeAsString(Data);
       return true;
     } catch (e) {

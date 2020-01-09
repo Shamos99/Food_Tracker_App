@@ -6,14 +6,14 @@ part 'Ingredient.g.dart';
 class Ingredient {
   String _name;
 
-  int _calories;
-  int _protein;
-  int _carbs;
-  int _fats;
+  double _calories;
+  double _protein;
+  double _carbs;
+  double _fats;
 
   int _servingSize = 100;
 
-  Ingredient(String name, int calories, int protein, int carbs, int fats) {
+  Ingredient(String name, double calories, double protein, double carbs, double fats) {
     this._name = name;
     this._calories = calories;
     this._protein = protein;
@@ -26,13 +26,13 @@ class Ingredient {
 
   Map<String, dynamic> toJson() => _$IngredientToJson(this);
 
-  int get protein => _protein;
+  double get protein => _protein;
 
-  int get calories => _calories;
+  double get calories => _calories;
 
-  int get fats => _fats;
+  double get fats => _fats;
 
-  int get carbs => _carbs;
+  double get carbs => _carbs;
 
   String get name => _name;
 

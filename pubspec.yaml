@@ -37,6 +37,11 @@ dependencies:
   #Circular indicator
   percent_indicator: "^2.1.1"
 
+  #Make life easy pls
+  flappy_search_bar: 1.4.1
+
+
+
 
 dev_dependencies:
   flutter_test:
@@ -46,6 +51,13 @@ dev_dependencies:
   build_runner: ^1.0.0
   json_serializable: ^3.0.0
 
+  #APP ICONS
+  flutter_launcher_icons: ^0.7.2
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
 
 
 # For information on the generic Dart part of this file, see the
@@ -58,6 +70,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+
+
 
   # To add assets to your application, add an assets section, like this:
   # assets:

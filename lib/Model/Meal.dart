@@ -1,47 +1,56 @@
+import 'dart:math';
+
+import 'package:flutter/cupertino.dart';
+import 'package:food_tracker/Model/Ingredient.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'Ingredient.dart';
+import 'IngredientAmount.dart';
 
 part 'Meal.g.dart';
 
 @JsonSerializable()
 class Meal {
-  List<String> _ingredients;
+  List<IngredientAmount> _ingredients;
   String _name;
-  int _cals;
-  int _protein;
 
-  Meal(String name, List<String> ingredientList, int cals, int protein) {
+  Meal(
+    String name,
+    List<IngredientAmount> ingredientList,
+  ) {
     this._name = name;
     this._ingredients = ingredientList;
-    this._cals = cals;
-    this._protein = protein;
   }
 
-  void addIngredient(Ingredient ingredient) {
-    if (_ingredients.contains(ingredient.name)) {
+  void addIngredient(IngredientAmount ingredient) {
+    if (_ingredients.contains(ingredient)) {
       throw Error();
     }
-    _ingredients.add(ingredient.name);
-    _cals += ingredient.calories;
-    _protein += ingredient.protein;
+    _ingredients.add(ingredient);
   }
 
-  void deleteIngredient(Ingredient ingredient) {
-    if (_ingredients.contains(ingredient.name)) {
-      throw Error();
-    }
+  void deleteIngredient(IngredientAmount ingredient) {
     _ingredients.remove(ingredient);
-    _cals -= ingredient.calories;
-    _protein -= ingredient.protein;
+  }
+
+  void editIngredient(Ingredient old_ing, Ingredient new_ing) {
+    for (int i = 0; i < _ingredients.length; i++) {
+      if (_ingredients[i].thisingredient.name == old_ing.name) {
+        _ingredients[i].thisingredient = new_ing;
+        return;
+      }
+    }
+  }
+
+  double getCalories() {
+    double cals = 0;
+    ingredientList.forEach((val) {
+      cals += val.getCalories();
+    });
+    return cals;
   }
 
   String get name => this._name;
 
-  List<String> get ingredientList => this._ingredients;
-
-  int get protein => _protein;
-
-  int get cals => _cals;
+  List<IngredientAmount> get ingredientList => this._ingredients;
 
   factory Meal.fromJson(Map<String, dynamic> json) => _$MealFromJson(json);
 

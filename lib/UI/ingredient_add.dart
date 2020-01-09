@@ -6,18 +6,16 @@ import 'package:food_tracker/Utility/FileHandler.dart';
 
 class IngredientAdd extends StatefulWidget {
   ModelManager manager = new ModelManager();
-  FileHandler fileHandler = new FileHandler(Constants.ingredients_json);
+  Ingredient ingredient_to_edit;
 
   //constructor
-  IngredientAdd() {
-    fileHandler.readData().then((String value) {
-      manager.createIngredients(value);
-    });
+  IngredientAdd({Ingredient edit_ingredient: null}) {
+    ingredient_to_edit = edit_ingredient;
+    manager.initModel();
   }
 
   @override
   State<StatefulWidget> createState() {
-    // TODO: implement createState
     return IngredientAddState();
   }
 }
@@ -25,19 +23,32 @@ class IngredientAdd extends StatefulWidget {
 class IngredientAddState extends State<IngredientAdd> {
   final _formkey = new GlobalKey<FormState>();
   String _ingredientName;
-  int _cals, _protein, _carbs, _fats;
+  double _cals, _protein, _carbs, _fats;
+
+  @override
+  void initState() {
+    if (widget.ingredient_to_edit != null) {
+      _ingredientName = widget.ingredient_to_edit.name;
+      _cals = widget.ingredient_to_edit.calories;
+      _protein = widget.ingredient_to_edit.protein;
+      _carbs = widget.ingredient_to_edit.carbs;
+      _fats = widget.ingredient_to_edit.fats;
+    }
+  }
 
   void _validateAdd() {
     final form = _formkey.currentState;
     if (form.validate()) {
       if (_validateIngredient()) {
-        //TODO WE CAN MAKE AN INGREDIENT
-        widget.manager.addIngedient(
-            Ingredient(_ingredientName, _cals, _protein, _carbs, _fats));
-        widget.fileHandler
-            .writeData(widget.manager.ingredientsJson())
-            .then((value) {
-          Navigator.pop(context);
+        if (widget.ingredient_to_edit != null) {
+          widget.manager.edit_ingredient(widget.ingredient_to_edit,
+              Ingredient(_ingredientName, _cals, _protein, _carbs, _fats));
+        } else {
+          widget.manager.addIngedient(
+              Ingredient(_ingredientName, _cals, _protein, _carbs, _fats));
+        }
+        widget.manager.saveModel().then((value) {
+          Navigator.pop(context, Constants.success);
         });
       }
     } else {
@@ -60,46 +71,28 @@ class IngredientAddState extends State<IngredientAdd> {
         });
   }
 
-  //TODO need to flesh this out
-  void _IngredientMisMatchDialogue() {
-    showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-              title: Text("Baka"),
-              content: Text("explanation..."),
-              actions: <Widget>[
-                FlatButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: Text(Constants.cancel,
-                        style: TextStyle(color: Colors.red))),
-                FlatButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: Text(Constants.okay),
-                )
-              ]);
-        });
-  }
-
   //SEE IF WE CAN MAKE AN INGREDIENT OR NOT
   bool _validateIngredient() {
     //check if the same named ingredient exists
-    widget.manager.ingredients.forEach((Ingredient ingredient) {
-      if (true) {
-        //TODO INGREDIENT SIMILARITY ERROR
-        //_showMaterialDialog();
-        //resetvariables();
+    if (widget.ingredient_to_edit == null) {
+      if (widget.manager.does_exist_ingredient_name(_ingredientName)) {
+        _showDialog(Constants.sameNamePromtIngredient);
+        resetvariables();
         return false;
       }
-    });
-    int total = 0;
+    } else {
+      if (widget.manager.does_ingredient_exist_edit(
+          widget.ingredient_to_edit.name, _ingredientName)) {
+        _showDialog(Constants.sameNamePromtIngredient);
+        resetvariables();
+        return false;
+      }
+    }
+
+    double total = 0;
     //now see if numbers add up
     if (_carbs != null && _fats != null) {
-      int total = _carbs * Constants.carbs_cals_per_gram +
+      double total = _carbs * Constants.carbs_cals_per_gram +
           _fats * Constants.fats_cals_per_gram +
           _protein * Constants.protein_cals_per_gram;
       if (_cals != total) {
@@ -134,7 +127,7 @@ class IngredientAddState extends State<IngredientAdd> {
 
   //see if a num is greater than zero or parsable
   bool _isValidNum(value) {
-    int myval = int.tryParse(value);
+    double myval = double.tryParse(value);
     if (myval == null) {
       return false;
     } else if (myval < 0) {
@@ -146,10 +139,11 @@ class IngredientAddState extends State<IngredientAdd> {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
     return new Scaffold(
       appBar: new AppBar(
-        title: new Text(Constants.add_ingredient),
+        title: new Text(widget.ingredient_to_edit == null
+            ? Constants.add_ingredient
+            : Constants.editIngredient),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -169,6 +163,7 @@ class IngredientAddState extends State<IngredientAdd> {
                 padding: EdgeInsets.all(8.0),
                 child: TextFormField(
                   //Ingredient Validator
+                  initialValue: _ingredientName,
                   validator: (value) {
                     if (value.isEmpty) {
                       return Constants.emptyError;
@@ -194,14 +189,15 @@ class IngredientAddState extends State<IngredientAdd> {
                     child: Padding(
                       padding: EdgeInsets.all(8.0),
                       child: TextFormField(
-                        keyboardType: TextInputType.number,
+                        keyboardType: platformspecificKeyboard(),
                         //Calories Validator
                         //WE MUST HAVE CALORIES
+                        initialValue: _cals == null ? "" : _cals.toString(),
                         validator: (value) {
                           if (value.isEmpty) {
                             return Constants.protein_cals_explanation;
                           } else if (_isValidNum(value)) {
-                            this._cals = int.parse(value);
+                            this._cals = double.parse(value);
                             return null;
                           }
                           return Constants.number_error_prompt;
@@ -222,14 +218,16 @@ class IngredientAddState extends State<IngredientAdd> {
                     child: Padding(
                       padding: EdgeInsets.all(8.0),
                       child: TextFormField(
-                        keyboardType: TextInputType.number,
+                        keyboardType: platformspecificKeyboard(),
+                        initialValue:
+                            _protein == null ? "" : _protein.toString(),
                         //Protein Validator
                         //WE MUST HAVE PROTEIN
                         validator: (value) {
                           if (value.isEmpty) {
                             return Constants.protein_cals_explanation;
                           } else if (_isValidNum(value)) {
-                            this._protein = int.parse(value);
+                            this._protein = double.parse(value);
                             return null;
                           }
                           return Constants.number_error_prompt;
@@ -254,11 +252,12 @@ class IngredientAddState extends State<IngredientAdd> {
                     child: Padding(
                       padding: EdgeInsets.all(8.0),
                       child: TextFormField(
-                        keyboardType: TextInputType.number,
+                        keyboardType: platformspecificKeyboard(),
+                        initialValue: _carbs == null ? "" : _carbs.toString(),
                         //Carbs Validator
                         validator: (value) {
                           if (_isValidNum(value)) {
-                            this._carbs = int.parse(value);
+                            this._carbs = double.parse(value);
                             return null;
                           } else if (value.isEmpty) {
                             return null;
@@ -281,11 +280,12 @@ class IngredientAddState extends State<IngredientAdd> {
                     child: Padding(
                       padding: EdgeInsets.all(8.0),
                       child: TextFormField(
-                        keyboardType: TextInputType.number,
+                        initialValue: _fats == null ? "" : _fats.toString(),
+                        keyboardType: platformspecificKeyboard(),
                         //Fats Validator
                         validator: (value) {
                           if (_isValidNum(value)) {
-                            this._fats = int.parse(value);
+                            this._fats = double.parse(value);
                             return null;
                           } else if (value.isEmpty) {
                             return null;
@@ -308,10 +308,35 @@ class IngredientAddState extends State<IngredientAdd> {
               ),
               RaisedButton(
                 onPressed: _validateAdd,
-                child: Icon(Icons.add),
+                child: Text(Constants.saveingredient),
               )
             ])),
       ),
     );
+  }
+
+  @deprecated
+  void _IngredientMisMatchDialogue() {
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+              title: Text("Baka"),
+              content: Text("explanation..."),
+              actions: <Widget>[
+                FlatButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: Text(Constants.cancel,
+                        style: TextStyle(color: Colors.red))),
+                FlatButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text(Constants.okay),
+                )
+              ]);
+        });
   }
 }
