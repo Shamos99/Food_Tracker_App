@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'custom.dart';
 import 'package:food_tracker/Model/ModelManager.dart';
 import 'package:food_tracker/Model/Ingredient.dart';
-import 'package:food_tracker/Utility/FileHandler.dart';
 
 class IngredientAdd extends StatefulWidget {
   ModelManager manager = new ModelManager();
@@ -36,10 +35,30 @@ class IngredientAddState extends State<IngredientAdd> {
     }
   }
 
+  void _round_down_all() {
+    if (_protein != null) {
+      _protein = double.parse(_protein.toStringAsFixed(2));
+    }
+    if (_carbs != null) {
+      _carbs = double.parse(_carbs.toStringAsFixed(2));
+    }
+    if (_fats != null) {
+      _fats = double.parse(_fats.toStringAsFixed(2));
+    }
+    if (_fats != null) {
+      _fats = double.parse(_fats.toStringAsFixed(2));
+    }
+  }
+
   void _validateAdd() {
     final form = _formkey.currentState;
     if (form.validate()) {
       if (_validateIngredient()) {
+        if (_cals == 0) {
+          resetvariables();
+          _showDialog(Constants.angry2);
+          return;
+        }
         if (widget.ingredient_to_edit != null) {
           widget.manager.edit_ingredient(widget.ingredient_to_edit,
               Ingredient(_ingredientName, _cals, _protein, _carbs, _fats));
@@ -51,23 +70,32 @@ class IngredientAddState extends State<IngredientAdd> {
           Navigator.pop(context, Constants.success);
         });
       }
-    } else {
-      resetvariables();
     }
+    resetvariables();
   }
 
   void _showDialog(String prompt) {
     showDialog(
         context: context,
         builder: (context) {
-          return AlertDialog(title: Text(prompt), actions: <Widget>[
-            FlatButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child:
-                    Text(Constants.okay, style: TextStyle(color: Colors.blue))),
-          ]);
+          return AlertDialog(
+              content: Text(
+                prompt,
+                textScaleFactor: 1.25,
+              ),
+              title: Icon(
+                Icons.warning,
+                color: Colors.red,
+                size: 40,
+              ),
+              actions: <Widget>[
+                FlatButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: Text(Constants.okay,
+                        style: TextStyle(color: Colors.blue))),
+              ]);
         });
   }
 
@@ -89,32 +117,19 @@ class IngredientAddState extends State<IngredientAdd> {
       }
     }
 
-    double total = 0;
-    //now see if numbers add up
-    if (_carbs != null && _fats != null) {
-      double total = _carbs * Constants.carbs_cals_per_gram +
-          _fats * Constants.fats_cals_per_gram +
-          _protein * Constants.protein_cals_per_gram;
-      if (_cals != total) {
-        _showDialog(Constants.total_cals_not_adding);
-        resetvariables();
-        return false;
-      }
-    }
-    total = _protein * Constants.protein_cals_per_gram;
-    if (_carbs != null) {
-      total += _carbs * Constants.carbs_cals_per_gram;
-    } else if (_fats != null) {
-      total += _fats * Constants.fats_cals_per_gram;
-    }
+    HandleItemCreation handleItemCreation = HandleItemCreation(
+        cals: _cals, carbs: _carbs, fats: _fats, protein: _protein);
 
-    if (total == 0 || total > _cals) {
-      _showDialog(Constants.cals_prompt_not_all_macros);
-      resetvariables();
+    if (handleItemCreation.do_my_shit()) {
+      _cals = handleItemCreation.cals;
+      _protein = handleItemCreation.protein;
+      _carbs = handleItemCreation.carbs;
+      _fats = handleItemCreation.fats;
+      return true;
+    } else {
+      _showDialog(handleItemCreation.prompt);
       return false;
     }
-
-    return true;
   }
 
   void resetvariables() {
@@ -123,18 +138,6 @@ class IngredientAddState extends State<IngredientAdd> {
     _protein = null;
     _fats = null;
     _carbs = null;
-  }
-
-  //see if a num is greater than zero or parsable
-  bool _isValidNum(value) {
-    double myval = double.tryParse(value);
-    if (myval == null) {
-      return false;
-    } else if (myval < 0) {
-      return false;
-    } else {
-      return true;
-    }
   }
 
   @override
@@ -153,7 +156,7 @@ class IngredientAddState extends State<IngredientAdd> {
               Padding(
                 padding: EdgeInsets.all(5.0),
                 child: Text(
-                  Constants.per_100_gm_or_ml,
+                  Constants.per_serving_size,
                   style: TextStyle(
                       color: Colors.pinkAccent.withOpacity(0.5),
                       fontStyle: FontStyle.italic),
@@ -165,11 +168,14 @@ class IngredientAddState extends State<IngredientAdd> {
                   //Ingredient Validator
                   initialValue: _ingredientName,
                   validator: (value) {
+                    this._ingredientName = value;
                     if (value.isEmpty) {
                       return Constants.emptyError;
+                    } else if (_ingredientName.trim().length == 0) {
+                      return Constants.emptyError;
+                    } else {
+                      return null;
                     }
-                    this._ingredientName = value;
-                    return null;
                   },
                   decoration: InputDecoration(
                     labelText: Constants.ingredientName,
@@ -195,8 +201,12 @@ class IngredientAddState extends State<IngredientAdd> {
                         initialValue: _cals == null ? "" : _cals.toString(),
                         validator: (value) {
                           if (value.isEmpty) {
-                            return Constants.protein_cals_explanation;
-                          } else if (_isValidNum(value)) {
+                            _cals = null;
+                            return null;
+                          } else if (isValidNum(value)) {
+                            if (double.parse(value) == 0) {
+                              return Constants.zero_cals;
+                            }
                             this._cals = double.parse(value);
                             return null;
                           }
@@ -225,8 +235,9 @@ class IngredientAddState extends State<IngredientAdd> {
                         //WE MUST HAVE PROTEIN
                         validator: (value) {
                           if (value.isEmpty) {
-                            return Constants.protein_cals_explanation;
-                          } else if (_isValidNum(value)) {
+                            _protein = null;
+                            return null;
+                          } else if (isValidNum(value)) {
                             this._protein = double.parse(value);
                             return null;
                           }
@@ -256,10 +267,11 @@ class IngredientAddState extends State<IngredientAdd> {
                         initialValue: _carbs == null ? "" : _carbs.toString(),
                         //Carbs Validator
                         validator: (value) {
-                          if (_isValidNum(value)) {
+                          if (isValidNum(value)) {
                             this._carbs = double.parse(value);
                             return null;
                           } else if (value.isEmpty) {
+                            _carbs = null;
                             return null;
                           }
                           return Constants.number_error_prompt;
@@ -284,10 +296,11 @@ class IngredientAddState extends State<IngredientAdd> {
                         keyboardType: platformspecificKeyboard(),
                         //Fats Validator
                         validator: (value) {
-                          if (_isValidNum(value)) {
+                          if (isValidNum(value)) {
                             this._fats = double.parse(value);
                             return null;
                           } else if (value.isEmpty) {
+                            _fats = null;
                             return null;
                           }
                           return Constants.number_error_prompt;

@@ -38,4 +38,14 @@ class MySharedPref {
 
     await pref.setStringList(Constants.key_meals, meals);
   }
+
+  static void meals_deleted(List<Meal> deleted_meals) async {
+    SharedPreferences pref =
+        await MySharedPref.get_pref(key: Constants.key_meals);
+
+    List<String> meals = pref.getStringList(Constants.key_meals);
+
+    meals.removeWhere(
+        (meal) => !deleted_meals.every((del_meal) => del_meal.name != meal));
+  }
 }

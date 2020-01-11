@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:food_tracker/Model/Meal.dart';
-import 'package:food_tracker/Utility/FileHandler.dart';
 import 'package:food_tracker/Model/ModelManager.dart';
 import 'custom.dart';
 import 'meal_add.dart';
@@ -104,7 +103,7 @@ class Meal_Main_State extends State<Meal_Main> {
             "Servings " +
                 item.amount.toStringAsFixed(1) +
                 "\n" +
-                getIngredientMacros(item.thisingredient),
+                getIngredientMacros(item.thisingredient, amount: item.amount),
             maxLines: 2,
           ),
         );
@@ -176,14 +175,14 @@ class Meal_Main_State extends State<Meal_Main> {
             builder: (context) => new MealAdd(
                   meal_edit: meal,
                 ))).then((value) {
+      if (pop) {
+        Navigator.of(context).pop();
+      }
       if (value == Constants.success) {
-        if (pop) {
-          Navigator.of(context).pop();
-        }
         scaffoldState.currentState.removeCurrentSnackBar();
         scaffoldState.currentState.showSnackBar(myGenericSnackbar(value));
-        this._startroutine();
       }
+      this._startroutine();
     });
   }
 }
@@ -280,7 +279,7 @@ class _SearchListViewState extends State<_SearchListView> {
             "Servings " +
                 item.amount.toStringAsFixed(1) +
                 "\n" +
-                getIngredientMacros(item.thisingredient),
+                getIngredientMacros(item.thisingredient, amount: item.amount),
             maxLines: 2,
           ),
         );

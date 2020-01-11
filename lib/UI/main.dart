@@ -7,6 +7,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:food_tracker/Model/ModelManager.dart';
 import 'package:food_tracker/UI/meal_add.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
@@ -16,22 +17,25 @@ import 'custom.dart';
 import 'ingredient_main.dart';
 import 'meal_main.dart';
 import 'ingredient_add.dart';
-import 'ingredient_search.dart';
 import 'meal_add.dart';
 import 'package:food_tracker/Model/Meal.dart';
 
-void main() => runApp(MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: Constants.appTitle,
-      initialRoute: AppRoutes.main_page,
-      routes: {
-        AppRoutes.main_page: (context) => _MainPage(),
-        AppRoutes.main_ingredient: (context) => IngredientMain(),
-        AppRoutes.add_ingredient: (context) => IngredientAdd(),
-        AppRoutes.main_meal: (context) => Meal_Main(),
-        AppRoutes.add_meal: (context) => MealAdd(),
-      },
-    ));
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
+      .then((value) => runApp(MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: Constants.appTitle,
+            initialRoute: AppRoutes.main_page,
+            routes: {
+              AppRoutes.main_page: (context) => _MainPage(),
+              AppRoutes.main_ingredient: (context) => IngredientMain(),
+              AppRoutes.add_ingredient: (context) => IngredientAdd(),
+              AppRoutes.main_meal: (context) => Meal_Main(),
+              AppRoutes.add_meal: (context) => MealAdd(),
+            },
+          )));
+}
 
 class MyApp extends StatelessWidget {
   @override
@@ -69,7 +73,7 @@ class _MainPageState extends State<_MainPage> {
 
   void _setcalories(double calories) async {
     SharedPreferences pref = await MySharedPref.get_pref();
-    pref.setDouble(Constants.key_calorie_goal, calories);
+    pref.setDouble(Constants.key_calorie_goal, calories.roundToDouble());
     _loadCalories();
   }
 
@@ -160,7 +164,7 @@ class _MainPageState extends State<_MainPage> {
                     decoration: BoxDecoration(color: Colors.lightBlueAccent),
                   ),
                   ListTile(
-                    title: Text(Options.foodlib),
+                    title: Text(Options.meallib),
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.pushNamed(context, AppRoutes.main_meal)
@@ -214,7 +218,8 @@ class _MainPageState extends State<_MainPage> {
                       "Servings " +
                           item.amount.toStringAsFixed(1) +
                           "\n" +
-                          getIngredientMacros(item.thisingredient),
+                          getIngredientMacros(item.thisingredient,
+                              amount: item.amount),
                       maxLines: 2,
                     ),
                   );
@@ -251,49 +256,6 @@ class _MainPageState extends State<_MainPage> {
             )))
         .values
         .toList();
-  }
-
-  //List of foods for today
-  List<Widget> _generateFoodList() {
-    return todays_meals.map((Meal item) {
-      return new Row(
-        children: <Widget>[
-          new Padding(padding: EdgeInsets.all(2.0)),
-          new Align(
-              alignment: Alignment.centerLeft,
-              child: new InkWell(
-                onLongPress: () {
-                  showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: Text(Constants.delete),
-                          actions: <Widget>[
-                            new FlatButton(
-                                onPressed: () {
-                                  setState(() {
-                                    todays_meals.remove(item);
-                                  });
-                                  Navigator.of(context).pop();
-                                },
-                                child: Text(Constants.yes)),
-                            new FlatButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                                child: Text(
-                                  Constants.no,
-                                  style: TextStyle(color: Colors.red),
-                                ))
-                          ],
-                        );
-                      });
-                },
-                child: new Text(item.name, textScaleFactor: 1.25),
-              ))
-        ],
-      );
-    }).toList();
   }
 
   //Main Page
@@ -387,38 +349,6 @@ class _MainPageState extends State<_MainPage> {
         ]);
   }
 
-  void _showMaterialDialog() {
-    showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text(Constants.calorie_goal_promopt),
-            content: new TextField(
-              decoration: new InputDecoration(hintText: Constants.type),
-              keyboardType: platformspecificKeyboard(),
-              onSubmitted: (String val) {
-                this._dialogueVal = double.parse(val);
-              },
-            ),
-            actions: <Widget>[
-              FlatButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: Text(Constants.cancel,
-                      style: TextStyle(color: Colors.red))),
-              FlatButton(
-                onPressed: () {
-                  this._setcalories(this._dialogueVal);
-                  Navigator.pop(context);
-                },
-                child: Text(Constants.okay),
-              )
-            ],
-          );
-        });
-  }
-
   void _refresh() {
     show_yes_no_dialogue(context, Constants.refresh_meals, yes_call_back: () {
       MySharedPref.get_pref().then((value) {
@@ -434,16 +364,56 @@ class _MainPageState extends State<_MainPage> {
   }
 
   void _choice(String choice) {
-    if (choice == Options.foodlib) {
+    if (choice == Options.meallib) {
     } else if (choice == Options.ingredientlib) {
-      Navigator.pushNamed(context, '/ingredient_main').then((value) {
+      Navigator.pushNamed(context, AppRoutes.main_ingredient).then((value) {
         this._init_todays_meals();
       });
     } else if (choice == Options.refresh) {
       _refresh();
     } else if (choice == Options.calorieGoal) {
-      _showMaterialDialog();
+      showDialog(
+          context: context,
+          builder: (BuildContext context) =>
+              MySetCalAlert(successfullCallback: this._setcalories));
     }
+  }
+
+  @deprecated
+  void _showMaterialDialog() {
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text(Constants.calorie_goal_promopt),
+            content: new TextField(
+                decoration: new InputDecoration(
+                    hintText: Constants.type, border: OutlineInputBorder()),
+                keyboardType: platformspecificKeyboard(),
+                onChanged: (String val) {
+                  this._dialogueVal = double.parse(val);
+                },
+                onSubmitted: (String val) {
+                  this._dialogueVal = double.parse(val);
+                }),
+            actions: <Widget>[
+              FlatButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text(Constants.cancel,
+                      style: TextStyle(color: Colors.red))),
+              FlatButton(
+                onPressed: () {
+                  if (this._dialogueVal < 0) {}
+                  this._setcalories(this._dialogueVal);
+                  Navigator.pop(context);
+                },
+                child: Text(Constants.okay),
+              )
+            ],
+          );
+        });
   }
 }
 

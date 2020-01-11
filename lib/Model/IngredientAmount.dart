@@ -1,7 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
 
 import 'Ingredient.dart';
-import 'package:json_annotation/json_annotation.dart';
 
 part 'IngredientAmount.g.dart';
 

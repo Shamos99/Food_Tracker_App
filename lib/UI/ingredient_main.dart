@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:food_tracker/Utility/FileHandler.dart';
 import 'custom.dart';
 import 'ingredient_add.dart';
 import 'package:food_tracker/Model/Ingredient.dart';
 import 'package:food_tracker/Model/ModelManager.dart';
-import 'package:json_annotation/json_annotation.dart';
 
 class IngredientMain extends StatefulWidget {
   ModelManager manager = ModelManager();

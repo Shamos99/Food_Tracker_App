@@ -12,10 +12,7 @@ class Meal {
   List<IngredientAmount> _ingredients;
   String _name;
 
-  Meal(
-    String name,
-    List<IngredientAmount> ingredientList,
-  ) {
+  Meal(String name, List<IngredientAmount> ingredientList) {
     this._name = name;
     this._ingredients = ingredientList;
   }

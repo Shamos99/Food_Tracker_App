@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart' as prefix0;
+import 'package:food_tracker/UI/ingredient_add.dart';
 import 'package:food_tracker/Model/Ingredient.dart';
 import 'package:food_tracker/Model/ModelManager.dart';
 import 'custom.dart';
 import 'package:food_tracker/Model/IngredientAmount.dart';
 
 class IngredientSearch extends StatefulWidget {
-  final List<IngredientAmount> selectedIngredients;
-  final List<Ingredient> all_ingredients;
+  List<IngredientAmount> selectedIngredients;
+  List<Ingredient> all_ingredients;
   List<Ingredient> toSearch = new List<Ingredient>();
+  ModelManager manager = ModelManager();
 
   IngredientSearch(this.selectedIngredients, this.all_ingredients) {
+    this.start_routine();
+  }
+
+  void start_routine() {
+    toSearch.clear();
     for (Ingredient ingredient in all_ingredients) {
       if (selectedIngredients
           .every((selected) => selected.thisingredient != ingredient)) {
@@ -36,8 +42,8 @@ class IngredientSearchSate extends State<IngredientSearch> {
           title: Text(Constants.search_ingredients),
           actions: <Widget>[
             IconButton(
-              icon: Icon(Icons.map),
-              onPressed: () {},
+              icon: Icon(Icons.add),
+              onPressed: _addingredient,
             ),
             IconButton(
               icon: Icon(Icons.search),
@@ -56,8 +62,28 @@ class IngredientSearchSate extends State<IngredientSearch> {
 
   @override
   void initState() {
-    allIngredients = widget.all_ingredients;
-    toSearch = widget.toSearch;
+    this.start_routine();
+  }
+
+  void start_routine() {
+    setState(() {
+      allIngredients = widget.all_ingredients;
+      toSearch = widget.toSearch;
+    });
+  }
+
+  void _addingredient() {
+    Navigator.push(context,
+            new MaterialPageRoute(builder: (context) => IngredientAdd()))
+        .then((value) {
+      if (value == Constants.success) {
+        widget.manager.initModel().then((value) {
+          widget.all_ingredients = widget.manager.ingredients;
+          widget.start_routine();
+          this.start_routine();
+        });
+      }
+    });
   }
 }
 
@@ -102,7 +128,8 @@ class SearchHandler extends SearchDelegate<String> {
 
   @override
   Widget buildSuggestions(BuildContext context) {
-    final List<Ingredient> suggestionlist = searchResults_ingredients(query, toSearch);
+    final List<Ingredient> suggestionlist =
+        searchResults_ingredients(query, toSearch);
 
     return suggestionlist.isEmpty
         ? Center(child: Text(Constants.noIngredients))

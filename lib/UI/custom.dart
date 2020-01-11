@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 import 'package:food_tracker/Model/Ingredient.dart';
 import 'package:food_tracker/Model/IngredientAmount.dart';
-import 'package:food_tracker/UI/ingredient_add.dart';
 import 'package:food_tracker/Model/Meal.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 
@@ -18,16 +17,17 @@ class AppRoutes {
 enum Macros { p, c, f, kcal }
 
 class Options {
-  static const String foodlib = "Food Library";
+  static const String meallib = "Meal Library";
   static const String ingredientlib = "Ingredient Library";
   static const String refresh = "Refresh Goals";
   static const String calorieGoal = "Change Calorie Goal";
   static const String createIngredient = "Create Ingredient";
   static const String createMeal = "Create Meal";
   static const String searchIngredeint = "Search Ingredient";
+  static const String add_cals_manually = "Add \"extra\" calories";
 
   static const List<String> options = <String>[
-    foodlib,
+    meallib,
     ingredientlib,
     refresh,
     calorieGoal
@@ -48,13 +48,14 @@ class Constants {
   static const String no = "No";
   static const String calorie_goal_promopt = "Enter your new calorie goal";
   static const String refresh_meals = "Delete meals and start again?";
+  static const String only_calories = "No Macros??";
   static const String cancel = "Cancel";
   static const String okay = "Okay";
   static const String type = "Type...";
   static const double defaultCalorieGoal = 2000;
   static const String ingredientPageTitle = "Ingredient Library";
   static const String add_ingredient = "Create Ingerdient";
-  static const String per_100_gm_or_ml = "per 100gm or 100ml";
+  static const String per_serving_size = "per serving size";
   static const String emptyError = "Enter something maybe???";
   static const String number_error_prompt = "idiot baka...";
   static const String ingredientName = "Ingredient Name";
@@ -67,8 +68,10 @@ class Constants {
   static const String noMeals = "No meals bitch";
   static const String protein_cals_explanation =
       "Protein and Calories are Mandatory";
+  static const String protein_too_high = "Protein is too high...";
   static const String total_cals_not_adding =
       "All macros do not add up to the given calories...dumbass";
+  static const String protein_mandatory = "Protein is mandatory..";
   static const String cals_prompt_not_all_macros =
       "The given macros should be less than the fucking calories dumbfuck";
   static const String menu = "Menu";
@@ -86,10 +89,16 @@ class Constants {
   static const String nothingfound = "Nothing Found :(";
   static const String saveingredient = "Save Ingredient";
   static const String enteramount = "amount...";
+  static const String enter_extra_cals = "Enter \"extra\" macros";
+  static const String already_added_invis_cals =
+      "You already added invisible calories asshole. If you wanna change it then delete it and add again";
   static const String angry = "fuck u";
   static const String angry2 = "You gonna eat air? Dumbfuck";
   static const String alreadyexists = "already exists";
   static const String success = "success";
+  static const String zero_cals = "zero calories?";
+  static const String done = "Done";
+  static String invis_cal_name = String.fromCharCode(1) + "\"Extra\" Macros";
 
   //integers for calorie logic
   static const int protein_cals_per_gram = 4;
@@ -137,7 +146,10 @@ TextInputType platformspecificKeyboard() {
 
 String getIngredientMacros(Ingredient ingredient, {double amount = 1}) {
   String toReturn = (ingredient.calories * amount).round().toString() + "kcal";
-  toReturn += " " + (ingredient.protein * amount).round().toString() + "p";
+
+  if (ingredient.protein != null) {
+    toReturn += " " + (ingredient.protein * amount).round().toString() + "p";
+  }
   if (ingredient.carbs != null) {
     toReturn += " " + (ingredient.carbs * amount).round().toString() + "c";
   }
@@ -151,7 +163,9 @@ String getMealMacros(List<IngredientAmount> ingredientlist) {
   double cals = 0, protein = 0, carbs = 0, fat = 0;
   ingredientlist.forEach((ingredient) {
     cals += ingredient.thisingredient.calories * ingredient.amount;
-    protein += ingredient.thisingredient.protein * ingredient.amount;
+    if (ingredient.thisingredient.protein != null) {
+      protein += ingredient.thisingredient.protein * ingredient.amount;
+    }
     if (ingredient.thisingredient.carbs != null) {
       carbs += ingredient.thisingredient.carbs * ingredient.amount;
     }
@@ -175,7 +189,9 @@ Map<Macros, int> get_macros_map(List<Meal> meals) {
   meals.forEach((meal) {
     meal.ingredientList.forEach((ingredient) {
       cals += ingredient.thisingredient.calories * ingredient.amount;
-      protein += ingredient.thisingredient.protein * ingredient.amount;
+      if (ingredient.thisingredient.protein != null) {
+        protein += ingredient.thisingredient.protein * ingredient.amount;
+      }
       if (ingredient.thisingredient.carbs != null) {
         carbs += ingredient.thisingredient.carbs * ingredient.amount;
       }
@@ -198,7 +214,9 @@ String getAllMealMacros(List<Meal> meals, {bool integer = false}) {
   meals.forEach((meal) {
     meal.ingredientList.forEach((ingredient) {
       cals += ingredient.thisingredient.calories * ingredient.amount;
-      protein += ingredient.thisingredient.protein * ingredient.amount;
+      if (ingredient.thisingredient.protein != null) {
+        protein += ingredient.thisingredient.protein * ingredient.amount;
+      }
       if (ingredient.thisingredient.carbs != null) {
         carbs += ingredient.thisingredient.carbs * ingredient.amount;
       }
@@ -252,7 +270,7 @@ class _MyAppBar extends AppBar {
         ]);
 
   static choice(String choice) {
-    if (choice == Options.foodlib) {
+    if (choice == Options.meallib) {
     } else if (choice == Options.ingredientlib) {
     } else if (choice == Options.refresh) {}
   }
@@ -363,4 +381,189 @@ void show_yes_no_dialogue(BuildContext context, String mytitle,
                   ))
             ],
           ));
+}
+
+class HandleItemCreation {
+  double cals, fats, protein, carbs;
+  double _total = 0;
+  String prompt;
+  List<Macros> _nulls = List<Macros>();
+  List<Macros> _non_nulls = List<Macros>();
+
+  HandleItemCreation(
+      {@required this.cals,
+      @required this.fats,
+      @required this.protein,
+      @required this.carbs}) {
+    if (fats != null) {
+      _total += fats * Constants.fats_cals_per_gram;
+      _non_nulls.add(Macros.f);
+    } else {
+      _nulls.add(Macros.f);
+    }
+    if (protein != null) {
+      _total += protein * Constants.protein_cals_per_gram;
+      _non_nulls.add(Macros.p);
+    } else {
+      _nulls.add(Macros.p);
+    }
+    if (carbs != null) {
+      _total += carbs * Constants.carbs_cals_per_gram;
+      _non_nulls.add(Macros.c);
+    } else {
+      _nulls.add(Macros.c);
+    }
+  }
+
+  void __setzero(Macros macro) {
+    if (macro == Macros.p) {
+      protein = 0;
+    } else if (macro == Macros.f) {
+      fats = 0;
+    } else if (macro == Macros.c) {
+      carbs = 0;
+    }
+  }
+
+  void _set_nulls_to_zero() {
+    for (Macros macro in _nulls) {
+      __setzero(macro);
+    }
+  }
+
+  bool _set_remaining_macro() {
+    double remaining = cals - _total;
+    if (remaining < 0) {
+      prompt = Constants.cals_prompt_not_all_macros;
+      return false;
+    }
+
+    if (_nulls[0] == Macros.f) {
+      fats = double.parse(
+          (remaining / Constants.fats_cals_per_gram).toStringAsFixed(2));
+    } else if (_nulls[0] == Macros.p) {
+      protein = double.parse(
+          (remaining / Constants.protein_cals_per_gram).toStringAsFixed(2));
+    } else if (_nulls[0] == Macros.c) {
+      carbs = double.parse(
+          (remaining / Constants.carbs_cals_per_gram).toStringAsFixed(2));
+    }
+
+    return true;
+  }
+
+  bool _cals_is_null() {
+    if (_nulls.length == 0) {
+      cals = _total;
+      return true;
+    } else if (_nulls.length == 1 || _nulls.length == 2) {
+      _set_nulls_to_zero();
+      cals = _total;
+      return true;
+    } else if (_nulls.length == 3) {
+      prompt = Constants.angry;
+      return false;
+    }
+  }
+
+  bool _cals_is_non_null() {
+    if (_nulls.length == 0) {
+      if (_total < cals - 10 || _total > cals + 10) {
+        prompt = Constants.cals_prompt_not_all_macros;
+        return false;
+      } else {
+        return true;
+      }
+    } else if (_nulls.length == 1) {
+      return _set_remaining_macro();
+    } else if (_nulls.length == 2) {
+      if (_total > cals) {
+        prompt = Constants.cals_prompt_not_all_macros;
+        return false;
+      } else if (_total == cals) {
+        _set_nulls_to_zero();
+        return true;
+      }
+      return true;
+    } else if (_nulls.length == 3) {
+      return true;
+    }
+  }
+
+  bool do_my_shit() {
+    if (cals == null) {
+      return _cals_is_null();
+    } else {
+      return _cals_is_non_null();
+    }
+  }
+}
+
+//see if a num is greater than zero or parsable
+bool isValidNum(value) {
+  double myval = double.tryParse(value);
+  if (myval == null) {
+    return false;
+  } else if (myval < 0) {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+class MySetCalAlert extends StatefulWidget {
+  Function successfullCallback;
+
+  MySetCalAlert({@required this.successfullCallback});
+
+  @override
+  State<StatefulWidget> createState() {
+    return MySetCalAlertState();
+  }
+}
+
+class MySetCalAlertState extends State<MySetCalAlert> {
+  double _dialogueval;
+  final _formkey = new GlobalKey<FormState>();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(Constants.calorie_goal_promopt),
+      content: Form(
+        autovalidate: true,
+        key: _formkey,
+        child: new TextFormField(
+          decoration: new InputDecoration(
+              hintText: Constants.type, border: OutlineInputBorder()),
+          keyboardType: platformspecificKeyboard(),
+          validator: (String value) {
+            if (isValidNum(value)) {
+              this._dialogueval = double.parse(value);
+              return null;
+            } else {
+              return "fack you";
+            }
+          },
+        ),
+      ),
+      actions: <Widget>[
+        FlatButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: Text(Constants.cancel, style: TextStyle(color: Colors.red))),
+        FlatButton(
+          onPressed: () {
+            final form = this._formkey.currentState;
+            if (form.validate()) {
+              Navigator.pop(context);
+              widget.successfullCallback(this._dialogueval);
+            }
+          },
+          child: Text(Constants.okay),
+        )
+      ],
+    );
+  }
 }

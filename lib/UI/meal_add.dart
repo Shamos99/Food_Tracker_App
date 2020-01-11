@@ -26,6 +26,9 @@ class MealAddState extends State<MealAdd> {
   String currentMacros;
   final _formkey = new GlobalKey<FormState>();
   final _nameformkey = new GlobalKey<FormState>();
+  bool added_invis_cals = false;
+
+  //final _dialoguekey = new GlobalKey<FormState>();
   String currentName;
   ModelManager manager;
 
@@ -35,8 +38,34 @@ class MealAddState extends State<MealAdd> {
     if (widget.meal_to_edit != null) {
       selectedIngredients = widget.meal_to_edit.ingredientList;
       currentName = widget.meal_to_edit.name;
+      if (!selectedIngredients.every(
+          (ing) => ing.thisingredient.name != Constants.invis_cal_name)) {
+        this.added_invis_cals = true;
+      }
     }
     currentMacros = getMealMacros(selectedIngredients);
+  }
+
+  void _cals_manually_set(IngredientAmount ingredientAmount) {
+    setState(() {
+      selectedIngredients.add(ingredientAmount);
+      currentMacros = getMealMacros(selectedIngredients);
+      added_invis_cals = true;
+    });
+  }
+
+  void _choice(String option) {
+    if (option == Options.add_cals_manually) {
+      if (!added_invis_cals) {
+        //_set_meal_cal(context: context, set_cal_callback: _cals_manually_set);
+        showDialog(
+            context: context,
+            builder: (context) =>
+                _MealAlert(set_cal_callback: _cals_manually_set));
+      } else {
+        show_simple_dialogue(context, Constants.already_added_invis_cals);
+      }
+    }
   }
 
   @override
@@ -46,6 +75,17 @@ class MealAddState extends State<MealAdd> {
         title: Text(widget.meal_to_edit == null
             ? Constants.createMeal
             : Constants.editMeal),
+        actions: <Widget>[
+          PopupMenuButton<String>(
+            itemBuilder: (BuildContext context) {
+              return [Options.add_cals_manually].map((String option) {
+                return PopupMenuItem<String>(
+                    value: option, child: Text(option));
+              }).toList();
+            },
+            onSelected: _choice,
+          )
+        ],
       ),
       body: Column(
         children: <Widget>[
@@ -68,6 +108,8 @@ class MealAddState extends State<MealAdd> {
                 validator: (value) {
                   currentName = value;
                   if (value.isEmpty) {
+                    return Constants.emptyError;
+                  } else if (currentName.trim().length == 0) {
                     return Constants.emptyError;
                   } else {
                     return null;
@@ -99,9 +141,6 @@ class MealAddState extends State<MealAdd> {
               ),
             ),
           ),
-
-          //FINAL ADD BUTTON
-
           Padding(
             padding: EdgeInsets.all(10.0),
             child: FloatingActionButton(
@@ -158,6 +197,7 @@ class MealAddState extends State<MealAdd> {
                   border: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.lightBlue))),
               keyboardType: platformspecificKeyboard(),
+              autovalidate: true,
               validator: (value) {
                 if (value == "") {
                   return null;
@@ -173,6 +213,11 @@ class MealAddState extends State<MealAdd> {
                   return null;
                 }
               },
+              onEditingComplete: () {
+                setState(() {
+                  currentMacros;
+                });
+              },
             ),
             widthFactor: 0.35,
           ),
@@ -186,7 +231,13 @@ class MealAddState extends State<MealAdd> {
                       new FlatButton(
                           onPressed: () {
                             setState(() {
+                              if (ingredient.thisingredient.name ==
+                                  Constants.invis_cal_name) {
+                                this.added_invis_cals = false;
+                              }
                               selectedIngredients.remove(ingredient);
+                              currentMacros =
+                                  getMealMacros(selectedIngredients);
                             });
                             Navigator.of(context).pop();
                           },
@@ -217,7 +268,7 @@ class MealAddState extends State<MealAdd> {
         show_simple_dialogue(context, Constants.emptyError);
         return;
       } else if (!nameform.validate()) {
-        //show_simple_dialogue(context, Constants.sameNamePromptMeal);
+        show_simple_dialogue(context, Constants.emptyError);
         return;
       }
 
@@ -225,6 +276,8 @@ class MealAddState extends State<MealAdd> {
         show_simple_dialogue(context, Constants.angry2);
         return;
       }
+
+      currentName = currentName.trim();
 
       if (this.widget.meal_to_edit == null) {
         if (manager.does_meal_name_exist(currentName)) {
@@ -249,5 +302,205 @@ class MealAddState extends State<MealAdd> {
         }
       }
     }
+  }
+}
+
+class _MealAlert extends StatefulWidget {
+  Function set_cal_callback;
+
+  @override
+  State<StatefulWidget> createState() {
+    return _MealAlertAState();
+  }
+
+  _MealAlert({@required this.set_cal_callback});
+}
+
+class _MealAlertAState extends State<_MealAlert> {
+  String error_msg = "";
+  double _cals, _protein, _carbs, _fats;
+  final _alert_form_key = new GlobalKey<FormState>();
+
+  void display_error(String error) {
+    setState(() {
+      error_msg = error;
+      Future.delayed(Duration(seconds: 3), () {
+        if (mounted) {
+          setState(() {
+            error_msg = "";
+          });
+        }
+      });
+    });
+  }
+
+  void resetvariables() {
+    _cals = null;
+    _protein = null;
+    _fats = null;
+    _carbs = null;
+  }
+
+  void validate() {
+    final form = _alert_form_key.currentState;
+    if (form.validate()) {
+      HandleItemCreation myItemCreation = HandleItemCreation(
+          cals: _cals, fats: _fats, protein: _protein, carbs: _carbs);
+      if (myItemCreation.do_my_shit()) {
+        _cals = myItemCreation.cals;
+        _protein = myItemCreation.protein;
+        _carbs = myItemCreation.carbs;
+        _fats = myItemCreation.fats;
+        widget.set_cal_callback(IngredientAmount(
+            Ingredient(
+                Constants.invis_cal_name, _cals, _protein, _carbs, _fats),
+            1));
+        Navigator.pop(context);
+      } else {
+        String prompt = myItemCreation.prompt;
+        display_error(prompt);
+      }
+    }
+    resetvariables();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(Constants.enter_extra_cals),
+      content: Form(
+        key: _alert_form_key,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Padding(
+              padding: EdgeInsets.all(10),
+              child: Row(
+                children: <Widget>[
+                  Flexible(
+                    child: TextFormField(
+                      keyboardType: platformspecificKeyboard(),
+                      decoration: InputDecoration(
+                          labelText: Constants.calories,
+                          labelStyle: TextStyle(color: Colors.blueGrey),
+                          border: OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.lightBlue[50]))),
+                      validator: (String value) {
+                        if (value.isEmpty) {
+                          _cals = null;
+                          return null;
+                        } else if (isValidNum(value)) {
+                          if (double.parse(value) == 0) {
+                            return Constants.zero_cals;
+                          }
+                          _cals = double.parse(value);
+                          return null;
+                        }
+                        return Constants.number_error_prompt;
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.all(20),
+                  ),
+                  Flexible(
+                    child: TextFormField(
+                      keyboardType: platformspecificKeyboard(),
+                      decoration: InputDecoration(
+                          labelText: Constants.protein,
+                          labelStyle: TextStyle(color: Colors.blueGrey),
+                          border: OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.lightBlue[50]))),
+                      validator: (String value) {
+                        if (value.isEmpty) {
+                          _protein = null;
+                          return null;
+                        } else if (isValidNum(value)) {
+                          _protein = double.parse(value);
+                          return null;
+                        }
+                        return Constants.number_error_prompt;
+                      },
+                    ),
+                  )
+                ],
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(10),
+              child: Row(
+                children: <Widget>[
+                  Flexible(
+                    child: TextFormField(
+                      keyboardType: platformspecificKeyboard(),
+                      decoration: InputDecoration(
+                          labelText: Constants.carbs,
+                          labelStyle: TextStyle(color: Colors.blueGrey),
+                          border: OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.lightBlue[50]))),
+                      validator: (String value) {
+                        if (value.isEmpty) {
+                          _carbs = null;
+                          return null;
+                        } else if (isValidNum(value)) {
+                          _carbs = double.parse(value);
+                          return null;
+                        }
+                        return Constants.number_error_prompt;
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.all(20),
+                  ),
+                  Flexible(
+                    child: TextFormField(
+                      keyboardType: platformspecificKeyboard(),
+                      decoration: InputDecoration(
+                          labelText: Constants.fats,
+                          labelStyle: TextStyle(color: Colors.blueGrey),
+                          border: OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.lightBlue[50]))),
+                      validator: (String value) {
+                        if (value.isEmpty) {
+                          _fats = null;
+                          return null;
+                        } else if (isValidNum(value)) {
+                          _fats = double.parse(value);
+                          return null;
+                        }
+                        return Constants.number_error_prompt;
+                      },
+                    ),
+                  )
+                ],
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(2.5),
+              child: Text(
+                error_msg,
+                textScaleFactor: 0.8,
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(2.5),
+              child: RaisedButton(
+                child: Text(Constants.done),
+                onPressed: () {
+                  validate();
+                },
+              ),
+            )
+          ],
+          //mainAxisSize: MainAxisSize.min,
+        ),
+      ),
+    );
   }
 }

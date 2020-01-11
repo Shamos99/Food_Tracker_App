@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:food_tracker/Model/IngredientAmount.dart';
 import 'package:food_tracker/Utility/FileHandler.dart';
 import 'package:food_tracker/Utility/SharedPref.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'Ingredient.dart';
 import 'Meal.dart';
 
@@ -138,11 +137,29 @@ class ModelManager {
   }
 
   void _deleteEmptyMeals() {
-    _meals.removeWhere((item) => item.ingredientList.isEmpty);
+    List<Meal> deleted = List<Meal>();
+    _meals.removeWhere((item) {
+      if (item.ingredientList.isEmpty) {
+        deleted.add(item);
+        return true;
+      } else {
+        return false;
+      }
+    });
+    MySharedPref.meals_deleted(deleted);
   }
 
   void deleteMeal(Meal meal) {
-    _meals.removeWhere((item) => item.name == meal.name);
+    List<Meal> deleted = List<Meal>();
+    _meals.removeWhere((item) {
+      if (item.name == meal.name) {
+        deleted.add(item);
+        return true;
+      } else {
+        return false;
+      }
+    });
+    MySharedPref.meals_deleted(deleted);
   }
 
   bool isSafeDeleteIngredient(Ingredient ingredient) {
@@ -186,11 +203,6 @@ class ModelManager {
   }
 
   Future<bool> saveModel() async {
-    SharedPreferences pref =
-        await MySharedPref.get_pref(key: Constants.key_meals);
-    pref.setStringList(
-        Constants.key_meals, MySharedPref.meals_to_string(_meals));
-
     await Future.wait([
       ingredientFileHandler.writeData(ingredientsJson()),
       mealFileHandler.writeData(mealsJson())
